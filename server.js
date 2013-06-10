@@ -10,18 +10,15 @@ console.debug = console.log;
 acl = new acl(new acl.memoryBackend(), console);
 //acl.allow("guest", "/page1", "get", function(){});
 
-acl.addUserRoles('test', 'admin', function(){
-	acl.allow("admin", "/favicon.ico", "get", function(){
-		acl.allow("admin", "/roles", "*", function(){
-			acl.allow("admin", "/create_role", "*", function(){
-				acl.allow("admin", "/delete_role", "*", function(){
-					acl.allow("admin", "/update_role", "*", function(){
-
-					})
-				});
-			});			
-		});
-	});
+acl.addUserRoles('test', 'acl', function(){
+	var resources = [
+		"/favicon.ico",
+		"/roles",
+		"/create_role",
+		"/update_role",
+		"/login"
+	];
+	acl.allow("acl", resources, "*", function(){});
 });
 db.connect('mongodb://localhost:27017/acl');
 
@@ -45,7 +42,13 @@ app.use(express.session({ secret: 'zzzzzzz'} ));
 //     return req.session.userId || 'guies';
 // }));
 
-app.use(acl.middleware(1, 'test'));
+app.use(acl.middleware(1, function(req, res){
+	console.log();
+	console.log(currentUser);
+	console.log();
+	
+	return currentUser;
+}));
 app.use(app.router);
 
 
@@ -119,14 +122,21 @@ app.post('/update_role', function(req, res){
 
 app.post('/create_role', function(req, res){
 	var role = new db.Role(req.body);
-	role.save(function(e, role){
-		
-
-		res.json(role);	
+	role.save(function(e, role){		
+		acl.allow(req.body.name , req.body.resources, '*', function(){
+			res.json(role);	
+		});
 	});
 });
 
 
+app.get('/login/:name', function(req, res){
+	console.log('>>> ' + req.params['name']);
+	currentUser = req.params['name'];
+	res.redirect('/index.html');
+})
+
+var currentUser = 'test';
 
 app.listen(3000, function(){
   console.log("Express server listening on port %d", '3000');
