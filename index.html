@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Hello world</title>
 
-
+<link rel="stylesheet" type="text/css" href="libs/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="style.css">
     <script src="libs/jquery-latest.js" type="text/javascript"></script>
     <script src="libs/knockout/knockout-min.js" type="text/javascript"></script>
@@ -18,23 +18,83 @@
  -->
     <script type="text/javascript">
     $(function() {
-        // var Page = function(model){
-        //     var self = this;
-        //     self.model = ko.mapping.fromJS(model);
 
-        // };
 
-        // var viewModel = new Page({ text : 'test' });
+        var Page = function(model){
+            var self = this;
+            self.roles = ko.observableArray([]);
+            self.role = ko.observable('');
 
-        // ko.applyBindings(viewModel);
+            self.all_rotes = null;
 
+            var get_rotes = function(){
+                if (!self.all_rotes) return [];
+
+                var routes = ko.utils.arrayMap(self.all_rotes.get, function(x){
+                    return x.method + ' ' + x.path; 
+                });
+
+                return routes;
+            };
+
+            self.run = function(){
+                $.get('/roles', function(data){
+
+                    self.roles(data.roles);
+                    self.all_rotes  = data.all_rotes;
+                });
+            }
+
+            self.add_role = function(){
+                var newRole = { 
+                    name : self.role(),
+                    permissions : get_rotes()
+                };
+
+                self.roles.push(newRole);
+                self.role('');
+            }
+
+            self.delete_role = function(item){
+                self.roles.remove(item);
+            }
+
+            self.roles.subscribe(function(roles){
+                $.post('/set_roles', { roles : roles });
+            });
+        };
+
+         var vm = new Page();
+
+         ko.applyBindings(vm);
+
+         vm.run();
     });
     </script>
 
 </head>
  <body>
-<!-- <div class="container">
-    <h1 data-bind="text : model.text">Hello</h1>
-    <input type="text" data-bind="value : model.text"/>
-</div> -->
+<div class="container">
+    <div class="row">
+        <div class="spn5">
+<ul class="unstyled" data-bind="foreach : roles">
+        <li>
+            <span data-bind="text : name"></span>
+            <ul class="inline" data-bind="foreach : permissions">
+                <li>
+                    <label class="checkbox"  >
+                        <input type="checkbox" />
+                        <label data-bind="text : $data"></label>
+                    </label>
+
+                </li> 
+            </ul>
+            <button class="close" data-bind="click : $parent.delete_role">&times;</button>
+        </li>
+    </ul>
+    <input type="text" data-bind="value : role"/><a href="javascript:void(0)" class="btn" data-bind="click : add_role">add role</a>
+        </div>
+    </div>
+    
+</div> 
  </html>

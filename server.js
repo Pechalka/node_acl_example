@@ -9,7 +9,14 @@ acl = new acl(new acl.memoryBackend(), console);
 //acl.allow("guest", "/page1", "get", function(){});
 
 acl.addUserRoles('test', 'admin', function(){
-	acl.allow("admin", "/page1", "get", function(){});
+	acl.allow("admin", "/page1", "get", function(){
+		acl.allow("admin", "/favicon.ico", "get", function(){
+			acl.allow("admin", "/roles", "get", function(){
+				acl.allow("admin", "/set_roles", "*", function(){
+				});
+			});			
+		});
+	});
 });
 
 //end acl
@@ -25,18 +32,6 @@ app.use(express.session({ secret: 'zzzzzzz'} ));
 
 
 
-//acl.middleware()
-// app.use(function(req, res, next){
-//    var transaction = acl.backend.begin();
-
-//    acl.backend.add(transaction, 'users', "guest", ["guest"]);
-    
-//    req.session.userId = 'test';
-// 	acl.backend.add(transaction, 'users', req.session.userId, ["admin"]);
-
-//    acl.backend.end(transaction, function(){});
-// 	next();
-// });
 
 app.use(acl.middleware(1, 'test'));
 app.use(app.router);
@@ -70,6 +65,34 @@ app.get('/page3', function(req, res){
 
 app.get('/getRoutes', function(req, res){
 	res.json(app.routes);
+});
+
+
+var roles = [
+	{
+		name : 'auth',
+		permissions : []
+	},
+	{
+		name : 'not auth',
+		permissions : []
+	}
+];
+
+app.get('/roles', function(req, res){
+	
+	var data = {
+		roles : roles,
+		all_rotes : app.routes
+	};
+
+	res.json(data);
+});
+
+
+app.post('/set_roles', function(req, res){
+	roles = req.body.roles;
+	res.json(req.body.roles);
 });
 
 app.listen(8080, function(){
