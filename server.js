@@ -15,6 +15,9 @@ acl.addUserRoles('test', 'admin', function(){
 		acl.allow("admin", "/roles", "*", function(){
 			acl.allow("admin", "/create_role", "*", function(){
 				acl.allow("admin", "/delete_role", "*", function(){
+					acl.allow("admin", "/update_role", "*", function(){
+
+					})
 				});
 			});			
 		});
@@ -97,9 +100,28 @@ app.post('/delete_role', function(req, res){
 	});
 });
 
+app.post('/update_role', function(req, res){
+	console.log(req.body);
+
+	var role = req.body.name;
+	var resources = req.body.resources; 
+
+	db.Role.findOne({ name : role }, function(e, doc){
+		doc.resources = resources;
+		doc.save(function(){
+			acl.allow(role , resources, '*', function(){
+				res.json(doc);
+			})		
+		});
+	});
+	
+});
+
 app.post('/create_role', function(req, res){
 	var role = new db.Role(req.body);
 	role.save(function(e, role){
+		
+
 		res.json(role);	
 	});
 });

@@ -17,20 +17,34 @@
  
  -->
     <script type="text/javascript">
-    var EditPermisionViewModel = function(close, role, permissions, isNew){
+    var EditPermisionViewModel = function(close, role, all_resources, isNew){
             var self = this;
             self.isNew = isNew;
             self.title = isNew ? 'Edit role ' + role.name : 'Add new role';
                        
             self.name = ko.observable(role.name);
-            self.permissions = ko.observableArray(permissions);
+            self.permissions = ko.utils.arrayMap(all_resources, function(r){
+
+                var i = ko.utils.arrayFirst(role.resources, function(x) { return x == r; });
+                var exist = i != null;
+
+                return { path : r, exist : exist}
+            });
+
 
             self.save = function(){
-                var role = { 
+                var resources = ko.utils.arrayFilter(self.permissions, function(x){ return x.exist; });
+                resources = ko.utils.arrayMap(resources, function(x) { return x.path; });
+            
+                var data = { 
                     name : self.name(),
-                    permissions : self.permissions
+                    resources : ko.toJS(resources)
                 }
-                close(role);
+                if (self.isNew){
+                    $.post('/create_role', data, close);
+                } else {
+                    $.post('/update_role', data, close);
+                }
             }
 
             self.cansel = function(){
@@ -45,6 +59,7 @@
         self.name = role.name;
 
         self.save = function(){
+
             close();
         }
 
@@ -92,12 +107,7 @@
                 var on_close = function(role){
                     $popup.modal('hide');
                     self.popup(null);
-                    if (role){
-                        $.post('/create_role', { name : role.name }, function(){
-                            self.roles.push(role);    
-                        })
-                        
-                    }    
+                    if (role) self.roles.push(role);
                 };
                 self.popup(new EditPermisionViewModel(on_close, { name : '' }, get_rotes(), true));
                 $popup.modal('show');
@@ -148,8 +158,8 @@
     <ul class="inline well" data-bind="foreach : permissions">
         <li>
             <label class="checkbox"  >
-                <input type="checkbox" />
-                <label data-bind="text : $data"></label>
+                <input type="checkbox" data-bind="checked : exist" />
+                <label data-bind="text : path"></label>
             </label>
         </li> 
     </ul>   

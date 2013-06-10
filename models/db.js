@@ -2,7 +2,8 @@ var mongoose = require('mongoose'),
 	Schema = mongoose.Schema;
 
 var accountSchema = new Schema({
-	name:{ type:String, required:true, unique:true, index:true}
+	name:{ type:String, required:true, unique:true, index:true},
+	resources : [String]
 });
 
 accountSchema.index({ "name" : 1}, { unique: true });
