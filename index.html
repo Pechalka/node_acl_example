@@ -109,7 +109,7 @@
                     self.popup(null);
                     if (role) self.roles.push(role);
                 };
-                self.popup(new EditPermisionViewModel(on_close, { name : '' }, get_rotes(), true));
+                self.popup(new EditPermisionViewModel(on_close, { name : '', resources : [] }, get_rotes(), true));
                 $popup.modal('show');
             }
 
