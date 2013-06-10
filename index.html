@@ -17,13 +17,13 @@
  
  -->
     <script type="text/javascript">
-    var EditPermisionViewModel = function(close, role, isNew){
+    var EditPermisionViewModel = function(close, role, permissions, isNew){
             var self = this;
             self.isNew = isNew;
             self.title = isNew ? 'Edit role ' + role.name : 'Add new role';
                        
             self.name = ko.observable(role.name);
-            self.permissions = ko.observableArray(role.permissions);
+            self.permissions = ko.observableArray(permissions);
 
             self.save = function(){
                 var role = { 
@@ -93,32 +93,28 @@
                     $popup.modal('hide');
                     self.popup(null);
                     if (role){
-                        role.templateName = ko.observable('empty-panel');
-                        self.roles.push(role);
+                        $.post('/create_role', { name : role.name }, function(){
+                            self.roles.push(role);    
+                        })
+                        
                     }    
                 };
-                var new_role = {
-                    name : '',
-                    permissions : get_rotes()
-                };
-                self.popup(new EditPermisionViewModel(on_close, new_role, true));
+                self.popup(new EditPermisionViewModel(on_close, { name : '' }, get_rotes(), true));
                 $popup.modal('show');
             }
 
             self.delete_role = function(item){
-                self.roles.remove(item);
+                $.post('/delete_role', { name : item.name }, function(){
+                    self.roles.remove(item);
+                });
             }
-
-            self.roles.subscribe(function(roles){
-                $.post('/set_roles', { roles : roles });
-            });
 
             self.edit_permissions = function(item){
                 var on_close = function(){
                     $popup.modal('hide');
                     self.popup(null);    
                 };
-                self.popup(new EditPermisionViewModel(on_close, item, false));
+                self.popup(new EditPermisionViewModel(on_close, item, get_rotes(), false));
                 $popup.modal('show');
             }
 

@@ -3,21 +3,25 @@ var express = require('express')
 
 var acl = require('acl');
 
+var db = require('./models/db');
+
 //acl config
 console.debug = console.log;
 acl = new acl(new acl.memoryBackend(), console);
 //acl.allow("guest", "/page1", "get", function(){});
 
 acl.addUserRoles('test', 'admin', function(){
-	acl.allow("admin", "/page1", "get", function(){
-		acl.allow("admin", "/favicon.ico", "get", function(){
-			acl.allow("admin", "/roles", "get", function(){
-				acl.allow("admin", "/set_roles", "*", function(){
+	acl.allow("admin", "/favicon.ico", "get", function(){
+		acl.allow("admin", "/roles", "*", function(){
+			acl.allow("admin", "/create_role", "*", function(){
+				acl.allow("admin", "/delete_role", "*", function(){
 				});
 			});			
 		});
 	});
 });
+db.connect('mongodb://localhost:27017/acl');
+
 
 //end acl
 
@@ -53,7 +57,7 @@ app.use(function(err, req, res, next) {
     });
 
 
-app.get('/page1', //acl.middleware(),  
+app.get('/page1',  
      function(req, res){
 		console.log('page1');
 		res.json('page1');
@@ -73,32 +77,34 @@ app.get('/getRoutes', function(req, res){
 });
 
 
-var roles = [
-	{
-		name : 'auth',
-		permissions : []
-	},
-	{
-		name : 'not auth',
-		permissions : []
-	}
-];
 
 app.get('/roles', function(req, res){
+	db.Role.find({}, function(e, docs){
+		var data = {
+			roles : docs,
+			all_rotes : app.routes
+		};
+		res.json(data);	
+	})
 	
-	var data = {
-		roles : roles,
-		all_rotes : app.routes
-	};
-
-	res.json(data);
 });
 
 
-app.post('/set_roles', function(req, res){
-	roles = req.body.roles;
-	res.json(req.body.roles);
+app.post('/delete_role', function(req, res){
+	db.Role.findOne({ name : req.body.name }, function(e, role){
+		role.remove();
+		res.json(e)
+	});
 });
+
+app.post('/create_role', function(req, res){
+	var role = new db.Role(req.body);
+	role.save(function(e, role){
+		res.json(role);	
+	});
+});
+
+
 
 app.listen(3000, function(){
   console.log("Express server listening on port %d", '3000');
