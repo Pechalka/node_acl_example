@@ -32,6 +32,11 @@ app.use(express.session({ secret: 'zzzzzzz'} ));
 
 
 
+//acl.addUserRoles('guies', 'guies', function(){});
+
+// app.use(acl.middleware(1, function(req, res){
+//     return req.session.userId || 'guies';
+// }));
 
 app.use(acl.middleware(1, 'test'));
 app.use(app.router);
@@ -95,6 +100,6 @@ app.post('/set_roles', function(req, res){
 	res.json(req.body.roles);
 });
 
-app.listen(8080, function(){
-  console.log("Express server listening on port %d", '8080');
+app.listen(3000, function(){
+  console.log("Express server listening on port %d", '3000');
 });
