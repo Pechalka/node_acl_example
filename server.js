@@ -10,17 +10,80 @@ console.debug = console.log;
 acl = new acl(new acl.memoryBackend(), console);
 //acl.allow("guest", "/page1", "get", function(){});
 
-acl.addUserRoles('test', 'acl', function(){
-	var resources = [
-		"/favicon.ico",
-		"/roles",
-		"/create_role",
-		"/update_role",
-		"/login"
-	];
-	acl.allow("acl", resources, "*", function(){});
-});
+//acl service
+var createRole = function(name, resources, callback){
+	db.Role.findOne({ name : name }, function(e, doc){
+		if (!doc) {
+			doc = new db.Role({
+				name : name, 
+				resources : resources
+			});
+		}
+
+		doc.resources = resources;
+		doc.save(function(){
+			acl.allow(name , resources, '*', function(e){
+				callback(e, doc);
+			})		
+		});
+	});
+}
+
+var apllyUser = function(users, role, callback){
+	var n = 0;
+	users.forEach(function(user){ //todo: use async
+		acl.addUserRoles(user, role, function(){
+			n++;
+			if (n == users.length)
+				callback();
+		});
+	});
+}
+
+var deleteRole = function(roleName, callback){
+	db.Role.findOne({ name : roleName }, function(e, role){
+		role.remove(callback);
+	});
+}
+
+var registUser = function(user, callback){
+	acl.addUserRoles(user, 'athorized', callback); //все юзеры как только залогинятся становятся athorized
+}
+
 db.connect('mongodb://localhost:27017/acl');
+
+
+
+
+createRole('admin', [ //дефолтовая роль все акшены упровляющии acl
+	"/favicon.ico",
+	"/roles",
+	"/create_role",
+	"/update_role",
+	"/delete_role",
+	"/login"
+], function(){});
+
+createRole('anonymous', [ //не авторазированные могут тока логинется
+	"/login"
+], function(){});
+
+createRole('athorized', [//авторизированые могут логинется и видить страницу 1
+	"/login",
+	"/page1"
+], function(){});
+
+
+//создали 4 пользоватся
+registUser('anonymous', function(){});
+registUser('test', function(){});
+registUser('user1', function(){});
+registUser('user2', function(){});
+
+apllyUser(['test'], 'admin', function(){});	
+
+
+
 
 
 //end acl
@@ -47,7 +110,7 @@ app.use(acl.middleware(1, function(req, res){
 	console.log(currentUser);
 	console.log();
 	
-	return currentUser;
+	return currentUser || 'anonymous';
 }));
 app.use(app.router);
 
@@ -97,42 +160,34 @@ app.get('/roles', function(req, res){
 
 
 app.post('/delete_role', function(req, res){
-	db.Role.findOne({ name : req.body.name }, function(e, role){
-		role.remove();
-		res.json(e)
+	deleteRole(req.body.name, function(){
+		res.json(req.body.name)
 	});
 });
 
 app.post('/update_role', function(req, res){
-	console.log(req.body);
-
-	var role = req.body.name;
-	var resources = req.body.resources; 
-
-	db.Role.findOne({ name : role }, function(e, doc){
-		doc.resources = resources;
-		doc.save(function(){
-			acl.allow(role , resources, '*', function(){
-				res.json(doc);
-			})		
-		});
+	createRole(req.body.name, req.body.resources, function(e, role){
+		res.json(role);
 	});
-	
 });
 
 app.post('/create_role', function(req, res){
-	var role = new db.Role(req.body);
-	role.save(function(e, role){		
-		acl.allow(req.body.name , req.body.resources, '*', function(){
-			res.json(role);	
-		});
+	createRole(req.body.name, req.body.resources, function(e, role){
+		res.json(role);
 	});
 });
 
 
 app.get('/login/:name', function(req, res){
-	console.log('>>> ' + req.params['name']);
-	currentUser = req.params['name'];
+	var user_name = req.params['name'];
+
+	
+	currentUser = user_name ;
+	if (user_name == 'none')
+		currentUser = null;
+
+	console.log('>>> ' + currentUser);
+
 	res.redirect('/index.html');
 })
 
