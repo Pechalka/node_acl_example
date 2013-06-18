@@ -7,24 +7,52 @@ var db = require('./models/db');
 
 //acl config
 console.debug = console.log;
+
+//acl = new acl(new acl.mongodbBackend(), console);
+
 acl = new acl(new acl.memoryBackend(), console);
+
 //acl.allow("guest", "/page1", "get", function(){});
 
 //acl service
 var createRole = function(name, resources, callback){
 	db.Role.findOne({ name : name }, function(e, doc){
+		//var isNew = false;
 		if (!doc) {
+		//	isNew = true;
 			doc = new db.Role({
 				name : name, 
 				resources : resources
 			});
 		}
+		var oldResurce = doc.resources || [];
+		//console.log(oldResurce);
 
 		doc.resources = resources;
 		doc.save(function(){
-			acl.allow(name , resources, '*', function(e){
-				callback(e, doc);
-			})		
+			//console.log(name, oldResurce);
+	//		acl.whatResources(name, function(ee, allow){
+			//console.log('>>>>>>>>>', isNew);
+			//acl.whatResources(name, oldResurce,  function(ee, r){
+			//	console.log(r);
+				 // if (isNew){
+				 // 	acl.allow(name , resources, '*', function(e){
+				 // 		callback(e, doc);
+				 // 	});
+				 // } else {
+				 	acl.allow(name , oldResurce, '*', function(e){ //fix sync
+					 	acl.removeAllow(name, oldResurce, '*', function(){
+							//console.log('>>>>>', name);
+							//acl.removeRole(name, function(){
+								acl.allow(name , resources, '*', function(e){
+									callback(e, doc);
+								});
+							//});
+				 		});
+			 		});
+			 	//}
+			// });
+	//		});
 		});
 	});
 }
@@ -34,8 +62,14 @@ var apllyUser = function(users, role, callback){
 	users.forEach(function(user){ //todo: use async
 		acl.addUserRoles(user, role, function(){
 			n++;
-			if (n == users.length)
-				callback();
+			if (n == users.length){
+				db.Role.findOne({ name : role }, function(e, doc){
+					doc.users = users;
+					doc.save(function(){
+						callback(null, doc);
+					})
+				});
+			}
 		});
 	});
 }
@@ -54,33 +88,53 @@ db.connect('mongodb://localhost:27017/acl');
 
 
 
-
+// 				acl.removeAllow('admin', [ 
+// 	"/favicon.ico",
+// 	"/roles",
+// 	"/create_role",
+// 	"/update_role",
+// 	"/delete_role",
+// 	"/aplly_user",
+// 	"/login"
+// ], '*', function(){
 createRole('admin', [ //дефолтовая роль все акшены упровляющии acl
 	"/favicon.ico",
 	"/roles",
 	"/create_role",
 	"/update_role",
 	"/delete_role",
+	"/aplly_user",
 	"/login"
-], function(){});
+], function(){
+	createRole('anonymous', [ //не авторазированные могут тока логинется
+		"/login"
+	], function(){
+		createRole('athorized', [//авторизированые могут логинется и видить страницу 1
+			"/login",
+			"/page1"
+		], function(){
 
-createRole('anonymous', [ //не авторазированные могут тока логинется
-	"/login"
-], function(){});
+			//создали 4 пользоватся
+			registUser('anonymous', function(){});
+			registUser('test', function(){});
+			registUser('user1', function(){});
+			registUser('user2', function(){});
 
-createRole('athorized', [//авторизированые могут логинется и видить страницу 1
-	"/login",
-	"/page1"
-], function(){});
+			apllyUser(['test'], 'admin', function(){
 
 
-//создали 4 пользоватся
-registUser('anonymous', function(){});
-registUser('test', function(){});
-registUser('user1', function(){});
-registUser('user2', function(){});
 
-apllyUser(['test'], 'admin', function(){});	
+				
+
+			});	
+
+		});
+
+	});
+});
+
+// });
+
 
 
 
@@ -99,11 +153,6 @@ app.use(express.session({ secret: 'zzzzzzz'} ));
 
 
 
-//acl.addUserRoles('guies', 'guies', function(){});
-
-// app.use(acl.middleware(1, function(req, res){
-//     return req.session.userId || 'guies';
-// }));
 
 app.use(acl.middleware(1, function(req, res){
 	console.log();
@@ -158,6 +207,12 @@ app.get('/roles', function(req, res){
 	
 });
 
+
+app.post('/aplly_user', function(req, res){
+	apllyUser(req.body.users, req.body.role, function(e, role){
+		res.json(role);
+	});
+});
 
 app.post('/delete_role', function(req, res){
 	deleteRole(req.body.name, function(){

@@ -17,6 +17,9 @@
  
  -->
     <script type="text/javascript">
+
+    var all_users = ['test', 'user1', 'user2', 'anonymous'];
+
     var EditPermisionViewModel = function(close, role, all_resources, isNew){
             var self = this;
             self.isNew = isNew;
@@ -54,13 +57,32 @@
             self.template = 'edit-permision-modal';
         };
 
-    var EditUsersViewModal = function(close, role){
+    var EditUsersViewModal = function(close, role, all_users){
         var self = this;
         self.name = role.name;
 
-        self.save = function(){
+        self.users = ko.observableArray(role.users || []);
+        self.all_users = ko.observableArray(all_users);
 
-            close();
+        self.add = function(user){
+            self.users.push(user);
+            self.all_users.remove(user);            
+        }
+
+        self.remove = function(user){
+            self.users.remove(user);
+            self.all_users.push(user);            
+        }
+
+        self.save = function(){
+            var data = {
+                role : self.name,
+                users : self.users
+            };
+            data = ko.toJS(data);
+            $.post('/aplly_user', data, function(){
+                close();
+            });
         }
 
         self.cansel = function(){
@@ -133,7 +155,7 @@
                     $popup.modal('hide');
                     self.popup(null);    
                 };
-                self.popup(new EditUsersViewModal(on_close, item));
+                self.popup(new EditUsersViewModal(on_close, item, all_users));
                 $popup.modal('show');
             }
         };
@@ -176,7 +198,21 @@
     <h3 data-bind="text : 'Add/Remove users from role ' + name "></h3>
   </div>
   <div class="modal-body">
-    <div class="well"></div>  
+    <div class="well">
+        <ul class="unstyled pull-left" data-bind="foreach : users">
+            <li>
+                <span data-bind="text : $data"></span>
+                <a class="btn btn-mini" href="#" data-bind="click : $parent.remove">remove</a>
+            </li>
+        </ul>
+        <ul class="unstyled pull-right" data-bind="foreach : all_users">
+            <li >
+                <span data-bind="text : $data"></span>
+                <a class="btn btn-mini" href="#" data-bind="click : $parent.add">add</a>
+            </li>
+        </ul>
+        <div class="clearfix"></div>
+    </div>  
     </div>
   <div class="modal-footer">
     <a href="#" class="btn" data-bind="click : cansel">Close</a>
@@ -192,7 +228,7 @@
   <li >
     <a href="/login/user1">user1</a>
   </li>
-  <li><a href="/login/user1">user2</a></li>
+  <li><a href="/login/user2">user2</a></li>
   <li><a href="/login/test">test</a></li>
   <li><a href="/login/none">none</a></li>
 </ul>

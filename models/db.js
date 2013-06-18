@@ -3,7 +3,8 @@ var mongoose = require('mongoose'),
 
 var accountSchema = new Schema({
 	name:{ type:String, required:true, unique:true, index:true},
-	resources : [String]
+	resources : [String],
+	users : [String]	
 });
 
 accountSchema.index({ "name" : 1}, { unique: true });
