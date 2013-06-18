@@ -2,6 +2,7 @@ var express = require('express')
   , app = express();
 
 var acl = require('acl');
+var async = require('async');
 
 var db = require('./models/db');
 
@@ -17,61 +18,55 @@ acl = new acl(new acl.memoryBackend(), console);
 //acl service
 var createRole = function(name, resources, callback){
 	db.Role.findOne({ name : name }, function(e, doc){
-		//var isNew = false;
 		if (!doc) {
-		//	isNew = true;
+			var canDelete = name != 'anonymous' &&
+							name != 'athorized' &&
+							name != 'admin';
+			var canEdit = name != 'anonymous' &&
+					      name != 'athorized';
+
 			doc = new db.Role({
 				name : name, 
-				resources : resources
+				resources : resources,
+				canDelete : canDelete,
+				canEdit	  : canEdit  
 			});
 		}
 		var oldResurce = doc.resources || [];
-		//console.log(oldResurce);
 
 		doc.resources = resources;
 		doc.save(function(){
-			//console.log(name, oldResurce);
-	//		acl.whatResources(name, function(ee, allow){
-			//console.log('>>>>>>>>>', isNew);
-			//acl.whatResources(name, oldResurce,  function(ee, r){
-			//	console.log(r);
-				 // if (isNew){
-				 // 	acl.allow(name , resources, '*', function(e){
-				 // 		callback(e, doc);
-				 // 	});
-				 // } else {
-				 	acl.allow(name , oldResurce, '*', function(e){ //fix sync
-					 	acl.removeAllow(name, oldResurce, '*', function(){
-							//console.log('>>>>>', name);
-							//acl.removeRole(name, function(){
-								acl.allow(name , resources, '*', function(e){
-									callback(e, doc);
-								});
-							//});
-				 		});
-			 		});
-			 	//}
-			// });
-	//		});
+		 	acl.allow(name , oldResurce, '*', function(e){ //fix sync
+			 	acl.removeAllow(name, oldResurce, '*', function(){
+						acl.allow(name , resources, '*', function(e){
+							callback(e, doc);
+						});
+		 		});
+	 		});
 		});
 	});
 }
 
 var apllyUser = function(users, role, callback){
-	var n = 0;
-	users.forEach(function(user){ //todo: use async
-		acl.addUserRoles(user, role, function(){
-			n++;
-			if (n == users.length){
-				db.Role.findOne({ name : role }, function(e, doc){
-					doc.users = users;
-					doc.save(function(){
-						callback(null, doc);
-					})
+	var removeRole = function(user, callback){
+		acl.removeUserRoles(user, role, callback);
+	}
+	var addRole = function(user, callback){
+		acl.addUserRoles(user, role, callback);async
+	}
+
+	db.Role.findOne({ name : role }, function(e, doc){
+		var oldUsers = doc.users;
+		doc.users = users; 
+		doc.save(function(){
+			async.each(oldUsers, removeRole, function(){
+				async.each(users, addRole, function(){
+					callback(null, doc);
 				});
-			}
+			});
 		});
 	});
+	
 }
 
 var deleteRole = function(roleName, callback){
@@ -115,17 +110,15 @@ createRole('admin', [ //дефолтовая роль все акшены упр
 		], function(){
 
 			//создали 4 пользоватся
-			registUser('anonymous', function(){});
+			//registUser('anonymous', function(){});
 			registUser('test', function(){});
 			registUser('user1', function(){});
 			registUser('user2', function(){});
 
 			apllyUser(['test'], 'admin', function(){
-
-
-
+				apllyUser(['anonymous'], 'anonymous', function(){
 				
-
+				});				
 			});	
 
 		});

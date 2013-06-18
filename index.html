@@ -108,7 +108,14 @@
                 if (!self.all_rotes) return [];
 
                 var routes = ko.utils.arrayMap(self.all_rotes.get, function(x){
-                    return  x.path; //x.method + ' ' +
+                    //debugger
+                    
+                    //return   x.path.split('/')[0]; //x.method + ' ' + 
+                    return   x.path.replace('/:name', ''); //todo : crete methanize for params
+                });
+
+                ko.utils.arrayForEach(self.all_rotes.post, function(x){
+                    routes.push( x.path);//x.method + ' ' +
                 });
 
                 return routes;
@@ -136,6 +143,8 @@
             }
 
             self.delete_role = function(item){
+                if (!item.canDelete) return;
+
                 $.post('/delete_role', { name : item.name }, function(){
                     self.roles.remove(item);
                 });
@@ -151,6 +160,8 @@
             }
 
             self.edit_users = function(item){
+                if (!item.canEdit) return;
+                
                 var on_close = function(){
                     $popup.modal('hide');
                     self.popup(null);    
@@ -239,8 +250,8 @@
             <div class="btn-toolbar">
             <div class="btn-group">
                 <a href="javascript:void(0)" class="btn btn-mini" data-bind="click : $parent.edit_permissions">edit permision</a>
-                <a href="javascript:void(0)" class="btn btn-mini" data-bind="click : $parent.edit_users">edit users</a>
-                <button class="btn btn-mini" data-bind="click : $parent.delete_role">delete role</button>            
+                <a href="javascript:void(0)" class="btn btn-mini" data-bind="css : { disabled : !canEdit}, click : $parent.edit_users">edit users</a>
+                <button class="btn btn-mini" data-bind="css : { disabled : !canDelete }, click : $parent.delete_role">delete role</button>            
             </div>
             </div>
             <!-- <hr/> -->

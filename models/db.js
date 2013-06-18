@@ -4,7 +4,9 @@ var mongoose = require('mongoose'),
 var accountSchema = new Schema({
 	name:{ type:String, required:true, unique:true, index:true},
 	resources : [String],
-	users : [String]	
+	users : [String],
+	canDelete : {type:Boolean, 	default:true},
+	canEdit : {type:Boolean, 	default:true}		
 });
 
 accountSchema.index({ "name" : 1}, { unique: true });
