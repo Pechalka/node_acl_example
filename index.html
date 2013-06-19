@@ -146,13 +146,7 @@
                         method : x.method 
                     });
                 }
-
-                // var routes = ko.utils.arrayMap(self.all_rotes.get, function(x){
-                //     //debugger
-                    
-                //     //return   x.path.split('/')[0]; //x.method + ' ' + 
-                //     return { path : x.path.replace('/:name', '') , method : x.method }; //todo : crete methanize for params
-                // });
+                
                 ko.utils.arrayForEach(self.all_rotes.get, mapRoute);
                 ko.utils.arrayForEach(self.all_rotes.post, mapRoute);
                 ko.utils.arrayForEach(self.all_rotes.put, mapRoute);

@@ -52,7 +52,7 @@ app.post('/aplly_user', function(req, res){
 	});
 });
 
-// -- RESP -----------------
+// -- REST -----------------
 app.get('/roles', function(req, res){
 	acl.allRoles(function(e, docs){
 		var data = {
