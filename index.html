@@ -27,18 +27,22 @@
                        
             self.name = ko.observable(role.name);
             self.permissions = ko.utils.arrayMap(all_resources, function(r){
-
-                var i = ko.utils.arrayFirst(role.resources, function(x) { return x == r; });
+                var i = ko.utils.arrayFirst(role.resources, function(x) {
+                    return x.path == r.path && x.method == r.method; 
+                });
                 var exist = i != null;
 
-                return { path : r, exist : exist}
+                return { path : r.method + ' ' + r.path, exist : exist}
             });
 
 
             self.save = function(){
                 var resources = ko.utils.arrayFilter(self.permissions, function(x){ return x.exist; });
-                resources = ko.utils.arrayMap(resources, function(x) { return x.path; });
-            
+                resources = ko.utils.arrayMap(resources, function(x) { 
+                    var parts = x.path.split(' ');
+                    return { method : parts[0], path : parts[1] };
+                });
+                
                 var data = { 
                     name : self.name(),
                     resources : ko.toJS(resources)
@@ -111,11 +115,11 @@
                     //debugger
                     
                     //return   x.path.split('/')[0]; //x.method + ' ' + 
-                    return   x.path.replace('/:name', ''); //todo : crete methanize for params
+                    return { path : x.path.replace('/:name', '') , method : x.method }; //todo : crete methanize for params
                 });
 
                 ko.utils.arrayForEach(self.all_rotes.post, function(x){
-                    routes.push( x.path);//x.method + ' ' +
+                    routes.push({ path : x.path, method : x.method });//x.method + ' ' +
                 });
 
                 return routes;

@@ -3,7 +3,10 @@ var mongoose = require('mongoose'),
 
 var accountSchema = new Schema({
 	name:{ type:String, required:true, unique:true, index:true},
-	resources : [String],
+	resources : [{
+		path : { type:String, required:true },
+		method : { type:String, required:true, default: '*' }
+	}],
 	users : [String],
 	canDelete : {type:Boolean, 	default:true},
 	canEdit : {type:Boolean, 	default:true}		

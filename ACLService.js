@@ -29,13 +29,27 @@ var createRole = exports.createRole = function(name, resources, callback){
 
         doc.resources = resources;
         doc.save(function(){
-            acl.allow(name , oldResurce, '*', function(e){ //fix sync
-                acl.removeAllow(name, oldResurce, '*', function(){
-                        acl.allow(name , resources, '*', function(e){
-                            callback(e, doc);
-                        });
-                });
-            });
+            var allowResurce = function(resource, callback){
+                acl.allow(name , resource.path, resource.method, callback);                            
+            }
+            var removeAllow = function(resource, callback){
+                acl.removeAllow(name , resource.path, resource.method, callback);                                        
+            }
+
+            async.each(oldResurce, allowResurce, function(e){ //fix sync
+                async.each(oldResurce, removeAllow, function(){
+                    async.each(resources, allowResurce, function(e){
+                        callback(e, doc);
+                    })
+                })
+            })
+            // acl.allow(name , oldResurce, '*', function(e){ //fix sync
+            //     acl.removeAllow(name, oldResurce, '*', function(){
+            //             acl.allow(name , resources, '*', function(e){
+            //                 callback(e, doc);
+            //             });
+            //     });
+            // });
         });
     });
 }
@@ -69,7 +83,7 @@ var deleteRole = exports.deleteRole  = function(roleName, callback){
 }
 
 var registUser = exports.registUser = function(user, callback){
-    acl.addUserRoles(user, 'athorized', callback); //все юзеры как только залогинятся становятся athorized
+    acl.addUserRoles(user, 'athorized', callback); 
 }
 
 var allRoles = exports.allRoles = function(callback){
@@ -98,13 +112,13 @@ var createDefault = function(admin, allUsers, done){
             name : 'admin',
             users : [admin],
             resources : [
-                "/favicon.ico",
-                "/roles",
-                "/create_role",
-                "/update_role",
-                "/delete_role",
-                "/aplly_user",
-                "/login"
+                { path : "/favicon.ico"},
+                { path : "/roles"},
+                { path : "/create_role"},
+                { path : "/update_role"},
+                { path : "/delete_role"},
+                { path : "/aplly_user"},
+                { path : "/login"}
             ],
             canDelete : false,
             canEdit : true    
@@ -113,7 +127,7 @@ var createDefault = function(admin, allUsers, done){
             name : 'anonymous',
             users : ['anonymous'],
             resources : [
-                "/login"
+                { path : "/login" }
             ],
             canDelete : false,
             canEdit : false    
@@ -122,8 +136,8 @@ var createDefault = function(admin, allUsers, done){
             name : 'athorized',
             users : allUsers, //should be all users
             resources : [
-                "/page1",
-                "/login"
+                { path : "/page1" },
+                { path : "/login" }
             ],
             canDelete : false,
             canEdit : true    
@@ -162,9 +176,6 @@ exports.init = function(admin, allUsers, done){
        }, 
        function(roles, callback){
            async.each(roles, apllyUserFromRole, function(){
-                console.log('r1', callback);
-                console.log('r1', callback);
-                
                 callback(null, roles); 
            });                
        },
@@ -172,26 +183,4 @@ exports.init = function(admin, allUsers, done){
            async.each(roles, apllyPermissionFromRole, callback);
        }
     ], done);
-
-    // allRoles(function(e, roles){ // get all roles from db
-    //     async.series([
-    //         function(callback){ // register all users in acl
-    //             async.each(allUsers, registUser, callback); // register all users
-    //         },
-    //         function(callback){ 
-    //             if (roles.length == 0){ //if no roles in db create defaul
-    //                 createDefault(admin, allUsers,callback);
-    //             } else {
-    //                 callback(null);
-    //             }
-    //         },
-    //         function(callback){ // apply users
-    //             console.log(roles);
-    //             async.each(roles, apllyUserFromRole, callback);                
-    //         },
-    //         function(callback){ //apply permission
-    //             async.each(roles, apllyPermissionFromRole, callback);
-    //         }
-    //     ], done);
-    // });
 }
