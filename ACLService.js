@@ -26,6 +26,7 @@ var createRole = exports.createRole = function(name, resources, callback){
             });
         }
         var oldResurce = doc.resources || [];
+        resources = resources || [];
 
         doc.resources = resources;
         doc.save(function(){
@@ -42,14 +43,7 @@ var createRole = exports.createRole = function(name, resources, callback){
                         callback(e, doc);
                     })
                 })
-            })
-            // acl.allow(name , oldResurce, '*', function(e){ //fix sync
-            //     acl.removeAllow(name, oldResurce, '*', function(){
-            //             acl.allow(name , resources, '*', function(e){
-            //                 callback(e, doc);
-            //             });
-            //     });
-            // });
+            });
         });
     });
 }
@@ -61,9 +55,10 @@ var apllyUser = exports.apllyUser = function(users, role, callback){
     var addRole = function(user, callback){
         acl.addUserRoles(user, role, callback);async
     }
+    users = users || [];
 
     db.Role.findOne({ name : role }, function(e, doc){
-        var oldUsers = doc.users;
+        var oldUsers = doc.users || [];
         doc.users = users; 
         doc.save(function(){
             async.each(oldUsers, removeRole, function(){
@@ -112,11 +107,11 @@ var createDefault = function(admin, allUsers, done){
             name : 'admin',
             users : [admin],
             resources : [
-                { path : "/favicon.ico"},
-                { path : "/roles"},
-                { path : "/create_role"},
-                { path : "/update_role"},
-                { path : "/delete_role"},
+                { path : "/favicon.ico", method : 'get' },
+                { path : "/roles", method : 'get'},
+                { path : "/roles", method : 'post' },
+                { path : "/roles", method : 'put'},
+                { path : "/roles", method : 'delete'},
                 { path : "/aplly_user"},
                 { path : "/login"}
             ],

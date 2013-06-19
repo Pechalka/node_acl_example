@@ -42,12 +42,17 @@ app.get('/page3', function(req, res){
 	res.json('page3');
 });
 
-app.get('/getRoutes', function(req, res){
-	res.json(app.routes);
+
+
+
+
+app.post('/aplly_user', function(req, res){
+	acl.apllyUser(req.body.users, req.body.role, function(e, role){
+		res.json(role);
+	});
 });
 
-
-
+// -- RESP -----------------
 app.get('/roles', function(req, res){
 	acl.allRoles(function(e, docs){
 		var data = {
@@ -58,31 +63,24 @@ app.get('/roles', function(req, res){
 	});
 });
 
-
-app.post('/aplly_user', function(req, res){
-	acl.apllyUser(req.body.users, req.body.role, function(e, role){
-		res.json(role);
-	});
-});
-
-app.post('/delete_role', function(req, res){
+app.delete('/roles', function(req, res){
 	acl.deleteRole(req.body.name, function(){
 		res.json(req.body.name)
 	});
 });
 
-app.post('/update_role', function(req, res){
+app.put('/roles', function(req, res){
 	acl.createRole(req.body.name, req.body.resources, function(e, role){
 		res.json(role);
 	});
 });
 
-app.post('/create_role', function(req, res){
+app.post('/roles', function(req, res){
 	acl.createRole(req.body.name, req.body.resources, function(e, role){
 		res.json(role);
 	});
 });
-
+// -----------------------------------------------
 
 app.get('/login/:name', function(req, res){
 	var user_name = req.params['name'];

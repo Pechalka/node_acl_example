@@ -18,6 +18,32 @@
  -->
     <script type="text/javascript">
 
+    var ajax = {
+        get : function(url, success){
+            return $.get(url, success)
+        },
+        post : function(url, data, success){
+            return $.post(url, data, success);
+        },
+        put : function(url, data, success){
+            return $.ajax({
+              url: url,
+              type: 'PUT',
+              data: data,
+              success: success
+            });
+        },
+        delete : function(url, data, success){
+          return $.ajax({
+              url: url,
+              type: 'DELETE',
+              data : data,
+              dataType : 'json',
+              success: success
+            });  
+        }
+    };
+
     var all_users = ['test', 'user1', 'user2', 'anonymous'];
 
     var EditPermisionViewModel = function(close, role, all_resources, isNew){
@@ -48,9 +74,9 @@
                     resources : ko.toJS(resources)
                 }
                 if (self.isNew){
-                    $.post('/create_role', data, close);
+                    ajax.post('/roles', data, close);
                 } else {
-                    $.post('/update_role', data, close);
+                    ajax.put('/roles', data, close);
                 }
             }
 
@@ -84,7 +110,7 @@
                 users : self.users
             };
             data = ko.toJS(data);
-            $.post('/aplly_user', data, function(){
+            ajax.post('/aplly_user', data, function(){
                 close();
             });
         }
@@ -111,22 +137,32 @@
             var get_rotes = function(){
                 if (!self.all_rotes) return [];
 
-                var routes = ko.utils.arrayMap(self.all_rotes.get, function(x){
-                    //debugger
-                    
-                    //return   x.path.split('/')[0]; //x.method + ' ' + 
-                    return { path : x.path.replace('/:name', '') , method : x.method }; //todo : crete methanize for params
-                });
+                var routes = [];
+                var mapRoute = function(x){
+                     // todo fix params 
+                    var path = x.path.replace('/:name', '');
+                    routes.push({ 
+                        path : path,
+                        method : x.method 
+                    });
+                }
 
-                ko.utils.arrayForEach(self.all_rotes.post, function(x){
-                    routes.push({ path : x.path, method : x.method });//x.method + ' ' +
-                });
+                // var routes = ko.utils.arrayMap(self.all_rotes.get, function(x){
+                //     //debugger
+                    
+                //     //return   x.path.split('/')[0]; //x.method + ' ' + 
+                //     return { path : x.path.replace('/:name', '') , method : x.method }; //todo : crete methanize for params
+                // });
+                ko.utils.arrayForEach(self.all_rotes.get, mapRoute);
+                ko.utils.arrayForEach(self.all_rotes.post, mapRoute);
+                ko.utils.arrayForEach(self.all_rotes.put, mapRoute);
+                ko.utils.arrayForEach(self.all_rotes.delete, mapRoute);
 
                 return routes;
             };
 
             self.run = function(){
-                $.get('/roles', function(data){
+                ajax.get('/roles', function(data){
                     ko.utils.arrayForEach(data.roles, function(r){
                         if (!r.permissions)
                             r.permissions = [];
@@ -149,7 +185,7 @@
             self.delete_role = function(item){
                 if (!item.canDelete) return;
 
-                $.post('/delete_role', { name : item.name }, function(){
+                ajax.delete('/roles', { name : item.name }, function(){
                     self.roles.remove(item);
                 });
             }
